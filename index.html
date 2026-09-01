@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>For Vishwa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Variables */
+        :root {
+            --ivory: #FDFBF7;
+            --charcoal: #1A1A1A;
+            --lavender: #A690D4;
+            --lavender-glow: rgba(166, 144, 212, 0.4);
+            --lavender-light: rgba(166, 144, 212, 0.15);
+            
+            --font-sans: 'Montserrat', system-ui, -apple-system, sans-serif;
+            --font-serif: 'Cormorant Garamond', Georgia, serif;
+        }
+
+        /* Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: var(--ivory);
+            color: var(--charcoal);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            width: 100vw;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: transparent;
+            border: none;
+            color: var(--charcoal);
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+        }
+        #audio-control.visible {
+            opacity: 0.6;
+            pointer-events: auto;
+        }
+
+        /* Progress Indicator */
+        #progress-indicator {
+            position: fixed;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+        }
+        .progress-dot {
+            width: 3px;
+            height: 12px;
+            background-color: rgba(26, 26, 26, 0.2);
+            border-radius: 4px;
+            transition: background-color 0.4s ease, transform 0.4s ease;
+        }
+        .progress-dot.active {
+            background-color: var(--lavender);
+            transform: scaleY(1.5);
+        }
+
+        /* ------------------------------------------------------------------
+           SCROLL MODES
+        ------------------------------------------------------------------- */
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100svh;
+            background: var(--ivory);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            transition: opacity 2s ease, filter 2s ease;
+        }
+
+        #snap-container {
+            height: 100svh;
+            width: 100vw;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            display: none;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+
+        #letter-container {
+            display: none;
+            width: 100vw;
+            min-height: 100svh;
+            opacity: 0;
+            transition: opacity 2s ease;
+            background: var(--ivory);
+        }
+
+        .scene {
+            min-height: 100svh;
+            width: 100vw;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        /* ------------------------------------------------------------------
+           ANIMATION UTILS (JS ENABLED)
+        ------------------------------------------------------------------- */
+        .js-enabled .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 1.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        transform 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition-delay: var(--delay, 0s);
+        }
+        .js-enabled .fade-up.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .js-enabled .blur-in {
+            opacity: 0;
+            filter: blur(8px);
+            transform: translateY(10px);
+            transition: opacity 1.5s ease, filter 1.5s ease, transform 1.5s ease;
+            transition-delay: var(--delay, 0s);
+        }
+        .js-enabled .blur-in.active {
+            opacity: 1;
+            filter: blur(0);
+            transform: translateY(0);
+        }
+
+        .js-enabled .scale-in {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 1.5s ease, transform 1.5s ease;
+            transition-delay: var(--delay, 0s);
+        }
+        .js-enabled .scale-in.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ------------------------------------------------------------------
+           PAGE 1: INTRO
+        ------------------------------------------------------------------- */
+        .intro-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--lavender);
+            border-radius: 50%;
+            opacity: 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: opacity 2s ease, transform 2s ease, box-shadow 2s ease;
+        }
+        .intro-dot.glow {
+            transform: translate(-50%, -50%) scale(25);
+            opacity: 0.08;
+            box-shadow: 0 0 50px var(--lavender);
+            filter: blur(4px);
+        }
+
+        .intro-text-wrapper {
+            position: relative;
+            z-index: 10;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .intro-msg {
+            position: absolute;
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            font-weight: 400;
+            opacity: 0;
+            filter: blur(10px);
+            transform: translateY(10px);
+            transition: opacity 1.5s ease, filter 1.5s ease, transform 1.5s ease;
+        }
+        .intro-msg.vishwa {
+            font-size: 2rem;
+            text-shadow: 0 0 15px var(--lavender-glow);
+        }
+        .intro-msg.visible {
+            opacity: 1;
+            filter: blur(0);
+            transform: translateY(0);
+        }
+        .intro-msg.hidden-up {
+            opacity: 0;
+            filter: blur(5px);
+            transform: translateY(-15px);
+        }
+
+        .btn-begin {
+            margin-top: 2rem;
+            background: none;
+            border: none;
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            color: var(--charcoal);
+            cursor: pointer;
+            position: relative;
+            padding-bottom: 5px;
+            opacity: 0;
+            transition: opacity 1.5s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+        .btn-begin.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .btn-begin::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--lavender);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.6s ease;
+        }
+        .btn-begin:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+        .arrow-anim {
+            display: inline-block;
+            transition: transform 0.4s ease-in-out;
+            animation: arrow-nudge 2s infinite ease-in-out;
+        }
+        @keyframes arrow-nudge {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(5px); }
+        }
+
+        /* ------------------------------------------------------------------
+           PAGE 2: BIRTHDAY REVEAL
+        ------------------------------------------------------------------- */
+        .date-typography {
+            font-size: 0.85rem;
+            letter-spacing: 4px;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+        .date-typography::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 0; height: 1px;
+            background: var(--lavender);
+            transition: width 1.5s ease 0.5s;
+        }
+        .scene.active .date-typography::after {
+            width: 40px;
+        }
+
+        .hb-container {
+            font-size: 1rem;
+            letter-spacing: 8px;
+            margin: 2rem 0;
+            display: flex;
+            gap: 2px;
+        }
+        .hb-letter {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+            transition-delay: var(--ldelay);
+        }
+        .scene.active .hb-letter {
+            opacity: 0.8;
+            transform: translateY(0);
+        }
+
+        .vishwa-reveal {
+            position: relative;
+            margin: 1rem 0;
+        }
+        .vishwa-text {
+            font-family: var(--font-serif);
+            font-size: clamp(3rem, 12vw, 5rem);
+            font-weight: 500;
+            letter-spacing: 2px;
+            opacity: 0;
+            transform: scale(0.85);
+            filter: blur(12px);
+            transition: opacity 2s ease 2s, transform 2s cubic-bezier(0.2, 0.8, 0.2, 1) 2s, filter 2s ease 2s;
+            position: relative;
+            z-index: 2;
+        }
+        .scene.active .vishwa-text {
+            opacity: 1;
+            transform: scale(1);
+            filter: blur(0);
+        }
+
+        .vishwa-glow {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            width: 150px; height: 150px;
+            background: radial-gradient(circle, var(--lavender-glow) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 1;
+            transition: transform 3s ease 2s, opacity 3s ease 2s;
+            opacity: 0;
+        }
+        .scene.active .vishwa-glow {
+            transform: translate(-50%, -50%) scale(2);
+            opacity: 1;
+        }
+
+        .vishwa-ring {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
+            width: 100%; height: 100%;
+            border: 1px solid var(--lavender);
+            border-radius: 50%;
+            z-index: 1;
+            opacity: 0;
+            transition: transform 2.5s ease-out 2s, opacity 2.5s ease-out 2s;
+        }
+        .scene.active .vishwa-ring {
+            transform: translate(-50%, -50%) scale(1.5);
+            opacity: 0;
+        }
+
+        .particles {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1px; height: 1px;
+            z-index: 3;
+            overflow: visible;
+        }
+        .particle {
+            position: absolute;
+            width: 3px; height: 3px;
+            background: var(--lavender);
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow: 0 0 5px var(--lavender);
+        }
+        @keyframes shootParticle {
+            0% { transform: rotate(var(--angle)) translateY(0) scale(1); opacity: 1; }
+            100% { transform: rotate(var(--angle)) translateY(-80px) scale(0); opacity: 0; }
+        }
+        .scene.active .particle {
+            animation: shootParticle 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation-delay: 2.2s;
+        }
+
+        .for-you {
+            margin-top: 3rem;
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: #555;
+            opacity: 0;
+            transition: opacity 1.5s ease 4s;
+        }
+        .scene.active .for-you { opacity: 1; }
+
+        /* ------------------------------------------------------------------
+           PAGE 3 & 4: TIMELINE & FIVE YEARS
+        ------------------------------------------------------------------- */
+        .timeline-year {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-family: var(--font-serif);
+            position: absolute;
+            opacity: 0;
+            transform: scale(1.1) translateY(20px);
+            filter: blur(5px);
+            transition: all 1s ease;
+        }
+        
+        .huge-number {
+            font-size: clamp(6rem, 25vw, 12rem);
+            font-family: var(--font-serif);
+            color: var(--charcoal);
+            position: absolute;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+        .huge-number.final-num {
+            color: var(--charcoal);
+            text-shadow: 0 10px 30px var(--lavender-light);
+        }
+        
+        .floating-word {
+            position: absolute;
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            color: #777;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        .mysterious-text {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            line-height: 1.6;
+            margin: 0.5rem 0;
+        }
+
+        /* ------------------------------------------------------------------
+           PAGE 6: A QUESTION
+        ------------------------------------------------------------------- */
+        .question-text {
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            margin-bottom: 3rem;
+        }
+        .answer-seq {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            position: absolute;
+            opacity: 0;
+            transition: all 1s ease;
+        }
+        .lavender-text {
+            color: var(--lavender);
+            font-style: italic;
+        }
+
+        /* ------------------------------------------------------------------
+           PAGE 7: UNSEEN CHAPTER
+        ------------------------------------------------------------------- */
+        .sheets-container {
+            position: relative;
+            width: 220px;
+            height: 300px;
+            margin-bottom: 2rem;
+            perspective: 1000px;
+        }
+        .sheet {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border-radius: 2px;
+            opacity: 0;
+            transform-origin: bottom center;
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-serif);
+            font-size: 1.2rem;
+        }
+        
+        /* Initial Scattered State */
+        .sheet:nth-child(1) { transform: translate(-20px, 10px) rotate(-5deg); transition-delay: 0.2s; }
+        .sheet:nth-child(2) { transform: translate(15px, -5px) rotate(3deg); transition-delay: 0.4s; }
+        .sheet:nth-child(3) { transform: translate(-10px, -15px) rotate(-2deg); transition-delay: 0.6s; }
+        .sheet:nth-child(4) { transform: translate(25px, 15px) rotate(6deg); transition-delay: 0.8s; }
+        .sheet:nth-child(5) { transform: translate(0, 0) rotate(0deg); transition-delay: 1.0s; z-index: 5; }
+
+        /* Overlapped State triggered by JS class */
+        .scene.active .sheets-container.overlap .sheet {
+            transform: translate(0,0) rotate(0deg);
+            opacity: 1;
+        }
+        
+        .scene.active .sheets-container.overlap .sheet:nth-child(5) {
+            transition-delay: 2s; /* wait then show text */
+        }
+
+        .sheet-text { opacity: 0; transition: opacity 1s ease 2.5s; }
+        .scene.active .sheets-container.overlap .sheet-text { opacity: 1; }
+
+        /* ------------------------------------------------------------------
+           PAGE 8: THE ENVELOPE
+        ------------------------------------------------------------------- */
+        .envelope-wrapper {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            margin: 2rem auto;
+            cursor: pointer;
+            perspective: 1200px;
+            transition: transform 0.5s ease;
+        }
+        .envelope-wrapper:hover {
+            transform: translateY(-5px);
+        }
+        
+        .env-back, .env-front, .env-flap, .env-letter-peek {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 2px;
+        }
+        
+        .env-back {
+            background: #f4f3ed;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.02);
+            z-index: 1;
+        }
+        
+        .env-letter-peek {
+            background: #fff;
+            width: 90%;
+            height: 90%;
+            left: 5%;
+            top: 5%;
+            z-index: 2;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 15px;
+            font-family: var(--font-serif);
+            color: var(--lavender);
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        
+        .env-front {
+            background: #faf9f4;
+            z-index: 3;
+            /* Create envelope front shape using borders */
+            border-left: 150px solid #f9f8f2;
+            border-right: 150px solid #f9f8f2;
+            border-bottom: 100px solid #f4f3ed;
+            border-top: 100px solid transparent;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            filter: drop-shadow(0 -1px 2px rgba(166, 144, 212, 0.2));
+        }
+
+        .env-flap {
+            background: #fdfcf8;
+            z-index: 4;
+            clip-path: polygon(0 0, 50% 55%, 100% 0);
+            transform-origin: top;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transform-style: preserve-3d;
+            border-top: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .env-seal {
+            position: absolute;
+            top: 55%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 24px; height: 24px;
+            background: var(--lavender);
+            border-radius: 50%;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* Envelope Open Animation State via JS */
+        .envelope-wrapper.is-opening { pointer-events: none; }
+        .envelope-wrapper.is-opening .env-seal { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        .envelope-wrapper.is-opening .env-flap { transform: rotateX(180deg); z-index: 1; }
+        .envelope-wrapper.is-opening .env-letter-peek { transform: translateY(-120px); z-index: 4; }
+        
+        .envelope-instruction {
+            margin-top: 4rem;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: #555;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* ------------------------------------------------------------------
+           PAGE 9: MAIN LETTER
+        ------------------------------------------------------------------- */
+        .letter-content {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 4rem 1.5rem 8rem 1.5rem;
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            line-height: 1.8;
+            color: var(--charcoal);
+            background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.03"/></svg>'), var(--ivory);
+            box-shadow: 0 0 40px rgba(0,0,0,0.02);
+        }
+
+        .letter-header {
+            margin-bottom: 3rem;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+        }
+        .letter-header span { color: var(--lavender); font-weight: 500; font-family: var(--font-serif); text-transform: none; font-size: 1.2rem; }
+
+        .letter-content p {
+            margin-bottom: 1.8rem;
+        }
+
+        .letter-highlight {
+            position: relative;
+            display: inline-block;
+        }
+        .letter-highlight::after {
+            content: ''; position: absolute; left: 0; bottom: 2px;
+            width: 100%; height: 6px;
+            background: var(--lavender-light);
+            z-index: -1;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 1s ease 0.5s;
+        }
+        .letter-highlight.active::after { transform: scaleX(1); }
+
+        /* ------------------------------------------------------------------
+           PAGE 10: FINAL REVEAL
+        ------------------------------------------------------------------- */
+        .final-reveal {
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+            background: #fff;
+            position: relative;
+        }
+
+        .final-dot {
+            width: 4px; height: 4px;
+            background: var(--lavender);
+            border-radius: 50%;
+            margin-bottom: 2rem;
+            transition: transform 2s ease, box-shadow 2s ease;
+        }
+        .final-dot.active {
+            transform: scale(2);
+            box-shadow: 0 0 60px 20px var(--lavender-glow);
+        }
+
+        .final-quote {
+            font-family: var(--font-serif);
+            font-size: 1.2rem;
+            line-height: 1.8;
+            max-width: 500px;
+            margin-bottom: 1.5rem;
+        }
+
+        .final-signature-block {
+            margin-top: 4rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .signature-intro {
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        .signature-name {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            color: var(--charcoal);
+            position: relative;
+            padding-bottom: 5px;
+        }
+        .signature-name::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 1px;
+            background: var(--lavender);
+            transform: scaleX(0);
+            transition: transform 1.5s ease 1s;
+        }
+        .final-reveal.active .signature-name::after {
+            transform: scaleX(1);
+        }
+
+        /* ------------------------------------------------------------------
+           ACCESSIBILITY
+        ------------------------------------------------------------------- */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+            .blur-in, .fade-up, .scale-in { filter: none !important; transform: none !important; opacity: 1 !important; }
+            .intro-msg, .hb-letter, .vishwa-text, .particles, .huge-number { transition-delay: 0s !important; animation: none !important; }
+            .env-flap { transition-duration: 0.1s !important; }
+            /* Keep basic functionality intact */
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bg-music" src="audio.mp3" preload="auto" loop></audio>
+    <button id="audio-control" aria-label="Toggle Audio">MUTE</button>
+
+    <div id="progress-indicator">
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+    </div>
+
+    <div id="intro-overlay">
+        <div class="intro-dot" id="intro-dot"></div>
+        
+        <div class="intro-text-wrapper">
+            <div class="intro-msg vishwa" id="msg-1">Vishwa...</div>
+            <div class="intro-msg" id="msg-2">There are some things that are easier to show than to say.</div>
+            <div class="intro-msg" id="msg-3">So, before you read anything...<br><br>just give me a few minutes.</div>
+            <div class="intro-msg" id="msg-4">I could have simply wished you over a message.<br><br>But somehow, that didn't feel enough this year.</div>
+            <div class="intro-msg" id="msg-5">So I made you something.</div>
+            <div class="intro-msg" id="msg-6">Take a little journey with me.</div>
+        </div>
+
+        <button class="btn-begin" id="btn-begin">Begin <span class="arrow-anim">→</span></button>
+    </div>
+
+    <div id="snap-container">
+        
+        <section class="scene" id="scene-birthday" data-index="0">
+            <div class="date-typography fade-up">03 · 09 · 2026</div>
+            <div class="hb-container blur-in" style="--delay: 1s">
+                <span class="hb-letter" style="--ldelay: 1.0s">H</span>
+                <span class="hb-letter" style="--ldelay: 1.1s">A</span>
+                <span class="hb-letter" style="--ldelay: 1.2s">P</span>
+                <span class="hb-letter" style="--ldelay: 1.3s">P</span>
+                <span class="hb-letter" style="--ldelay: 1.4s">Y</span>
+                <span style="width: 10px;"></span>
+                <span class="hb-letter" style="--ldelay: 1.6s">B</span>
+                <span class="hb-letter" style="--ldelay: 1.7s">I</span>
+                <span class="hb-letter" style="--ldelay: 1.8s">R</span>
+                <span class="hb-letter" style="--ldelay: 1.9s">T</span>
+                <span class="hb-letter" style="--ldelay: 2.0s">H</span>
+                <span class="hb-letter" style="--ldelay: 2.1s">D</span>
+                <span class="hb-letter" style="--ldelay: 2.2s">A</span>
+                <span class="hb-letter" style="--ldelay: 2.3s">Y</span>
+            </div>
+            
+            <div class="vishwa-reveal">
+                <div class="vishwa-text">VISHWA</div>
+                <div class="vishwa-glow"></div>
+                <div class="vishwa-ring"></div>
+                <div class="particles" id="vishwa-particles"></div>
+            </div>
+
+            <div class="for-you">This one's for you.</div>
+        </section>
+
+        <section class="scene" id="scene-timeline" data-index="1">
+            <div style="position: relative; width: 100%; height: 200px; display: flex; align-items: center; justify-content: center;">
+                <div class="timeline-year" id="ty-2018">2018</div>
+                <div class="timeline-year" id="ty-2019">2019</div>
+                <div class="timeline-year" id="ty-2020">2020</div>
+                <div class="timeline-year" id="ty-2021">2021</div>
+                <div class="timeline-year" id="ty-2022">2022</div>
+            </div>
+            <div style="height: 100px;">
+                <p class="mysterious-text fade-up" id="tm-text-1" style="opacity: 0; transition: opacity 1s;">Somewhere around here, something changed.</p>
+                <p class="mysterious-text fade-up" id="tm-text-2" style="opacity: 0; transition: opacity 1s;">Two people met.<br>Neither probably knew how many memories were waiting ahead.</p>
+            </div>
+        </section>
+
+        <section class="scene" id="scene-five-years" data-index="2">
+            <div style="position: relative; width: 100%; height: 250px; display: flex; align-items: center; justify-content: center;">
+                <div class="huge-number" id="fn-1">01</div>
+                <div class="huge-number" id="fn-2">02</div>
+                <div class="huge-number" id="fn-3">03</div>
+                <div class="huge-number" id="fn-4">04</div>
+                <div class="huge-number final-num" id="fn-5">05</div>
+
+                <div class="floating-word" id="fw-1" style="top: 10%; left: 20%;">Conversations</div>
+                <div class="floating-word" id="fw-2" style="bottom: 10%; right: 20%;">Laughter</div>
+                <div class="floating-word" id="fw-3" style="top: 20%; right: 15%;">Chaos</div>
+                <div class="floating-word" id="fw-4" style="bottom: 20%; left: 15%;">Support</div>
+                <div class="floating-word" id="fw-5" style="top: 50%; left: 10%;">Memories</div>
+            </div>
+            <div style="height: 80px; margin-top: 2rem;">
+                <p class="mysterious-text" id="fy-text-1" style="opacity: 0; transition: opacity 1s;">Five years.</p>
+                <p class="mysterious-text lavender-text" id="fy-text-2" style="opacity: 0; transition: opacity 1s; font-size: 1rem; margin-top: 1rem;">Funny how a number can carry so many memories.</p>
+            </div>
+        </section>
+
+        <section class="scene" id="scene-little" data-index="3">
+            <div style="position: relative; width: 100%; height: 400px;">
+                <div class="floating-word" id="lt-1" style="font-family: var(--font-serif); font-size: 1.5rem; top: 15%; left: 15%;">Laughs.</div>
+                <div class="floating-word" id="lt-2" style="font-family: var(--font-serif); font-size: 1.5rem; bottom: 25%; right: 10%;">Conversations.</div>
+                <div class="floating-word" id="lt-3" style="font-family: var(--font-serif); font-size: 1.5rem; top: 40%; right: 20%;">Random moments.</div>
+                <div class="floating-word" id="lt-4" style="font-family: var(--font-serif); font-size: 1.5rem; bottom: 15%; left: 20%;">Long days.</div>
+                <div class="floating-word" id="lt-5" style="font-family: var(--font-serif); font-size: 1.5rem; top: 10%; right: 30%;">Stupid jokes.</div>
+                <div class="floating-word" id="lt-6" style="font-family: var(--font-serif); font-size: 1.5rem; bottom: 40%; left: 30%;">Silence.</div>
+                
+                <div id="lt-memories" style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%); opacity: 0; transition: opacity 1.5s ease;">
+                    <div style="font-family: var(--font-serif); font-size: 2.5rem; margin-bottom: 1rem;">Memories.</div>
+                    <div style="font-family: var(--font-sans); font-size: 0.9rem; color: #555; letter-spacing: 1px;">The things we don't plan are often the things we remember.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="scene" id="scene-question" data-index="4">
+            <div class="question-text fade-up" style="--delay: 0.5s">Do you know what makes a friendship special?</div>
+            <div style="position: relative; height: 100px; width: 100%; display: flex; align-items: center; justify-content: center;">
+                <div class="answer-seq" id="aq-1">Time?</div>
+                <div class="answer-seq" id="aq-2">Memories?</div>
+                <div class="answer-seq" id="aq-3">Distance?</div>
+                <div class="answer-seq" id="aq-4" style="width: 100%; font-size: 1.3rem;">Maybe it's simply <span class="lavender-text">being there.</span></div>
+            </div>
+        </section>
+
+        <section class="scene" id="scene-sheets" data-index="5">
+            <div class="fade-up" style="--delay: 0.2s; font-family: var(--font-serif); margin-bottom: 2rem;">We've already lived through five chapters.</div>
+            
+            <div class="sheets-container fade-up" style="--delay: 1s">
+                <div class="sheet"></div>
+                <div class="sheet"></div>
+                <div class="sheet"></div>
+                <div class="sheet"></div>
+                <div class="sheet"><span class="sheet-text">Chapter ???</span></div>
+            </div>
+
+            <div class="fade-up sheet-text-2" style="opacity: 0; font-family: var(--font-sans); font-size: 0.9rem; letter-spacing: 1px; transition: opacity 1s ease 4s;">And somehow, the story still feels unfinished.</div>
+            <div class="fade-up sheet-text-3" style="opacity: 0; font-family: var(--font-serif); font-size: 1.2rem; font-style: italic; margin-top: 1rem; transition: opacity 1s ease 5.5s;">Maybe that's the best part.</div>
+        </section>
+
+        <section class="scene" id="scene-envelope" data-index="6">
+            <div class="envelope-wrapper" id="envelope-wrapper">
+                <div class="env-back"></div>
+                <div class="env-letter-peek">VISHWA</div>
+                <div class="env-front"></div>
+                <div class="env-flap"></div>
+                <div class="env-seal"></div>
+            </div>
+
+            <div class="envelope-instruction fade-up" style="--delay: 1s;">
+                <span>Some things are better written down.</span>
+                <span style="color: var(--charcoal); font-weight: 500;">Open the letter &rarr;</span>
+            </div>
+        </section>
+
+    </div>
+
+    <div id="letter-container">
+        
+        <div class="letter-content">
+            <div class="letter-header obs-item fade-up">FOR YOU, <br><span>Vishwa</span></div>
+            
+            <p class="obs-item blur-in">Happiest Birthday, Vishwa ❤️</p>
+            
+            <p class="obs-item blur-in">Five years. 2022–2026.</p>
+            
+            <p class="obs-item fade-up">When I think about these five years, it honestly feels strange how quickly time has passed. From becoming close during those college years to everything that followed, somehow you became such an important part of my life without either of us ever really planning it.</p>
+            
+            <p class="obs-item fade-up">These five years have been especially close, and when I look back at them, what I remember most isn't just the big moments. It's all those little conversations, random laughs, silly moments, difficult days, and countless memories that somehow became special <span class="letter-highlight obs-item">simply because you were there.</span></p>
+            
+            <p class="obs-item fade-up">I'm genuinely grateful that life gave me a person like you.</p>
+            
+            <p class="obs-item fade-up">You've been there for me at times when I needed someone the most, even when I didn't know how to say that I needed someone. There were moments when people weren't there, but you were. And I don't think I've ever properly told you how much that has meant to me.</p>
+            
+            <p class="obs-item fade-up">You have this beautiful way of making people feel heard, valued, and comfortable just by being yourself. Your kindness, your warmth, and the way you care about the people around you are things I have always admired about you.</p>
+            
+            <p class="obs-item fade-up">And maybe that's why even the simplest moments with you became memories worth holding on to.</p>
+            
+            <p class="obs-item fade-up">We've grown, changed, and gone through different phases, and life will probably take us in many different directions from here. But one thing I hope never changes is the place our friendship has in our lives.</p>
+            
+            <p class="obs-item fade-up">Thank you for the laughter. Thank you for the support. Thank you for all the memories. Thank you for being someone I could count on. And most importantly, thank you for being you.</p>
+            
+            <p class="obs-item fade-up">I don't know what the next few years will look like for either of us, but I do know that I'll always be grateful for the years we've already shared.</p>
+            
+            <p class="obs-item fade-up">On your birthday, I just hope life is always kind to you. May this year bring you success, good health, happiness, new beginnings, and countless reasons to smile. I hope you get everything you truly deserve and never settle for anything less. And whenever life gets difficult, I hope you always remember that your presence has made a difference in someone's life, especially mine.</p>
+            
+            <p class="obs-item fade-up">Here's to more conversations, more laughter, more stupid moments, more unforgettable memories, and many more chapters of this friendship.</p>
+            
+            <p class="obs-item blur-in">Happy Birthday once again, Vishwa. ❤️</p>
+            
+            <p class="obs-item fade-up" style="font-style: italic; color: #666;">May your life keep getting brighter, happier, and more beautiful with every chapter.</p>
+        </div>
+
+        <div class="final-reveal obs-item" id="scene-final">
+            <div class="final-dot obs-item" id="final-dot" style="--delay: 1s;"></div>
+            
+            <div class="final-quote obs-item blur-in" style="--delay: 2.5s;">
+                Years may change, life may change, and we may change with it, but some people leave a place in your heart that time can never replace.
+            </div>
+            
+            <div class="final-quote obs-item fade-up" style="--delay: 5s;">
+                <span class="lavender-text">You'll always be one of those people for me.</span>
+            </div>
+
+            <div class="final-signature-block obs-item blur-in" style="--delay: 7s;">
+                <div class="signature-intro">With lots of love and gratitude,</div>
+                <div class="signature-name">Bala</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.documentElement.classList.add('js-enabled');
+
+        // Utils
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        
+        // --- Intro Sequence ---
+        const introDot = document.getElementById('intro-dot');
+        const msgs = [
+            document.getElementById('msg-1'),
+            document.getElementById('msg-2'),
+            document.getElementById('msg-3'),
+            document.getElementById('msg-4'),
+            document.getElementById('msg-5'),
+            document.getElementById('msg-6')
+        ];
+        const btnBegin = document.getElementById('btn-begin');
+
+        async function playIntro() {
+            // 0-2s fade in dot
+            introDot.style.opacity = '1';
+            await wait(2000);
+            
+            // 2-4s glow
+            introDot.classList.add('glow');
+            await wait(2000);
+
+            // Sequential text reveal
+            for(let i=0; i<msgs.length; i++) {
+                msgs[i].classList.add('visible');
+                await wait(2500);
+                if(i < msgs.length - 1) {
+                    msgs[i].classList.remove('visible');
+                    msgs[i].classList.add('hidden-up');
+                    await wait(800);
+                }
+            }
+            
+            await wait(1000);
+            btnBegin.classList.add('visible');
+        }
+
+        window.onload = playIntro;
+
+        // --- Audio Management ---
+        const audio = document.getElementById('bg-music');
+        const audioCtrl = document.getElementById('audio-control');
+        let isMuted = false;
+
+        audioCtrl.addEventListener('click', () => {
+            isMuted = !isMuted;
+            audio.muted = isMuted;
+            audioCtrl.textContent = isMuted ? "UNMUTE" : "MUTE";
+        });
+
+        // --- Transition to Main Website ---
+        btnBegin.addEventListener('click', async () => {
+            btnBegin.style.transform = 'scale(0.95)';
+            audio.play().catch(() => console.log("Audio autoplay prevented by browser."));
+            audioCtrl.classList.add('visible');
+
+            const overlay = document.getElementById('intro-overlay');
+            const snap = document.getElementById('snap-container');
+            const progress = document.getElementById('progress-indicator');
+
+            overlay.style.opacity = '0';
+            await wait(1500);
+            overlay.style.display = 'none';
+            
+            snap.style.display = 'block';
+            // slight delay to ensure display:block renders before fading in
+            await wait(50);
+            snap.style.opacity = '1';
+            progress.style.opacity = '1';
+            
+            initObserver();
+            generateParticles();
+        });
+
+        // --- Particle Generator ---
+        function generateParticles() {
+            const container = document.getElementById('vishwa-particles');
+            const numParticles = 15;
+            for(let i=0; i<numParticles; i++) {
+                let p = document.createElement('div');
+                p.className = 'particle';
+                let angle = (i / numParticles) * 360;
+                p.style.setProperty('--angle', angle + 'deg');
+                container.appendChild(p);
+            }
+        }
+
+        // --- Complex Scene Logic ---
+        async function runTimelineSeq() {
+            const ids = ['ty-2018','ty-2019','ty-2020','ty-2021','ty-2022'];
+            for(let id of ids) {
+                let el = document.getElementById(id);
+                el.style.opacity = '1';
+                el.style.transform = 'scale(1) translateY(0)';
+                el.style.filter = 'blur(0)';
+                await wait(800);
+                if(id !== 'ty-2022') {
+                    el.style.opacity = '0';
+                    el.style.transform = 'scale(0.9) translateY(-20px)';
+                    el.style.filter = 'blur(5px)';
+                    await wait(400);
+                }
+            }
+            await wait(600);
+            document.getElementById('tm-text-1').style.opacity = '1';
+            await wait(1500);
+            document.getElementById('tm-text-2').style.opacity = '1';
+        }
+
+        async function runFiveYearsSeq() {
+            const nums = ['fn-1','fn-2','fn-3','fn-4','fn-5'];
+            const words = ['fw-1','fw-2','fw-3','fw-4','fw-5'];
+            
+            for(let i=0; i<5; i++) {
+                let numEl = document.getElementById(nums[i]);
+                let wordEl = document.getElementById(words[i]);
+                
+                numEl.style.opacity = '1';
+                wordEl.style.opacity = '1';
+                
+                await wait(1000);
+                
+                if(i < 4) {
+                    numEl.style.opacity = '0';
+                    wordEl.style.opacity = '0';
+                    await wait(300);
+                }
+            }
+            await wait(1000);
+            document.getElementById('fy-text-1').style.opacity = '1';
+            await wait(1200);
+            document.getElementById('fy-text-2').style.opacity = '1';
+        }
+
+        async function runLittleThingsSeq() {
+            const words = ['lt-1','lt-2','lt-3','lt-4','lt-5','lt-6'];
+            for(let w of words) {
+                let el = document.getElementById(w);
+                el.style.opacity = '1';
+                await wait(1200);
+                el.style.opacity = '0';
+                await wait(300);
+            }
+            await wait(800);
+            document.getElementById('lt-memories').style.opacity = '1';
+        }
+
+        async function runQuestionSeq() {
+            const ans = ['aq-1','aq-2','aq-3','aq-4'];
+            for(let i=0; i<4; i++) {
+                let el = document.getElementById(ans[i]);
+                el.style.opacity = '1';
+                await wait(1500);
+                if(i < 3) {
+                    el.style.opacity = '0';
+                    await wait(400);
+                }
+            }
+        }
+
+        // State flags to ensure sequences only run once
+        const runFlags = {
+            timeline: false,
+            fiveYears: false,
+            littleThings: false,
+            question: false,
+            sheets: false
+        };
+
+        // --- Intersection Observer for Standard & Custom Animations ---
+        function initObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        
+                        // Handle Progress indicator
+                        if(entry.target.classList.contains('scene') && entry.target.hasAttribute('data-index')) {
+                            updateProgress(parseInt(entry.target.getAttribute('data-index')));
+                        }
+
+                        // Trigger specific JS sequences based on ID
+                        const id = entry.target.id;
+                        if(id === 'scene-timeline' && !runFlags.timeline) {
+                            runFlags.timeline = true;
+                            setTimeout(runTimelineSeq, 500);
+                        }
+                        if(id === 'scene-five-years' && !runFlags.fiveYears) {
+                            runFlags.fiveYears = true;
+                            setTimeout(runFiveYearsSeq, 500);
+                        }
+                        if(id === 'scene-little' && !runFlags.littleThings) {
+                            runFlags.littleThings = true;
+                            setTimeout(runLittleThingsSeq, 500);
+                        }
+                        if(id === 'scene-question' && !runFlags.question) {
+                            runFlags.question = true;
+                            setTimeout(runQuestionSeq, 1500); // delay after question appears
+                        }
+                        if(id === 'scene-sheets' && !runFlags.sheets) {
+                            runFlags.sheets = true;
+                            // The overlapping is handled via CSS when .active is added
+                            // But we need to add the specific class to the inner container
+                            setTimeout(() => {
+                                document.querySelector('.sheets-container').classList.add('overlap');
+                                document.querySelector('.sheet-text-2').style.opacity = '1';
+                                document.querySelector('.sheet-text-3').style.opacity = '1';
+                            }, 1500);
+                        }
+                        if(id === 'scene-final') {
+                            setTimeout(() => {
+                                document.getElementById('final-dot').classList.add('active');
+                            }, 1500);
+                        }
+                    }
+                });
+            }, { 
+                threshold: 0.3 
+            });
+
+            // Observe all items needing standard CSS trigger
+            document.querySelectorAll('.scene, .obs-item').forEach(el => observer.observe(el));
+        }
+
+        // --- Progress Dots Update ---
+        const progressDots = document.querySelectorAll('.progress-dot');
+        function updateProgress(index) {
+            progressDots.forEach((dot, i) => {
+                if(i === index) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+        }
+
+        // --- Envelope Interaction ---
+        const envelope = document.getElementById('envelope-wrapper');
+        let envelopeOpened = false;
+
+        envelope.addEventListener('click', async () => {
+            if(envelopeOpened) return;
+            envelopeOpened = true;
+
+            // Trigger CSS animation sequence
+            envelope.classList.add('is-opening');
+
+            // Wait for envelope animation (approx 3s)
+            await wait(2500);
+
+            const snapContainer = document.getElementById('snap-container');
+            const letterContainer = document.getElementById('letter-container');
+            const progress = document.getElementById('progress-indicator');
+
+            // Fade out scenes
+            snapContainer.style.opacity = '0';
+            progress.style.opacity = '0';
+            await wait(1000);
+            
+            // Switch layout modes
+            snapContainer.style.display = 'none';
+            letterContainer.style.display = 'block';
+            window.scrollTo(0, 0);
+
+            // Fade in letter
+            await wait(100);
+            letterContainer.style.opacity = '1';
+        });
+
+    </script>
+</body>
+</html>
